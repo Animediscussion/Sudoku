@@ -1,95 +1,194 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+import SudokuBoard from "./components/SudokuBoard";
+import NumberPad from "./components/NumberPad";
+
+import { generateSudoku, isValidMove } from "./utils/sudoku";
+
 import "./App.css";
 
-const initialBoard = [
-  [5, 3, 0, 0, 7, 0, 0, 0, 0],
-  [6, 0, 0, 1, 9, 5, 0, 0, 0],
-  [0, 9, 8, 0, 0, 0, 0, 6, 0],
-
-  [8, 0, 0, 0, 6, 0, 0, 0, 3],
-  [4, 0, 0, 8, 0, 3, 0, 0, 1],
-  [7, 0, 0, 0, 2, 0, 0, 0, 6],
-
-  [0, 6, 0, 0, 0, 0, 2, 8, 0],
-  [0, 0, 0, 4, 1, 9, 0, 0, 5],
-  [0, 0, 0, 0, 8, 0, 0, 7, 9],
-];
-
 function App() {
-  const [board, setBoard] = useState(initialBoard);
+  const [board, setBoard] = useState([]);
+  const [initialBoard, setInitialBoard] = useState([]);
+  const [solution, setSolution] = useState([]);
+
   const [selectedCell, setSelectedCell] = useState(null);
+
+  const [error, setError] = useState("");
+
+  const [difficulty, setDifficulty] = useState("medium");
+
+  // ---------------------------------------------
+  // Start a new game
+  // ---------------------------------------------
+
+  const startNewGame = (level = difficulty) => {
+    const { puzzle, solution: generatedSolution } = generateSudoku(level);
+
+    setBoard(puzzle);
+
+    setInitialBoard(puzzle.map((row) => [...row]));
+
+    setSolution(generatedSolution);
+
+    setSelectedCell(null);
+    setError("");
+  };
+
+  // ---------------------------------------------
+  // Generate first puzzle
+  // ---------------------------------------------
+
+  useEffect(() => {
+    startNewGame("medium");
+  }, []);
+
+  // ---------------------------------------------
+  // Cell click
+  // ---------------------------------------------
 
   const handleCellClick = (row, col) => {
     setSelectedCell({ row, col });
+    setError("");
   };
+
+  // ---------------------------------------------
+  // Number input
+  // ---------------------------------------------
 
   const handleNumberInput = (number) => {
     if (!selectedCell) return;
 
     const { row, col } = selectedCell;
 
-    // Don't allow changing original puzzle numbers
-    if (initialBoard[row][col] !== 0) return;
+    // Don't modify original cells
+    if (initialBoard[row][col] !== 0) {
+      return;
+    }
+
+    // Sudoku rule validation
+    if (!isValidMove(board, row, col, number)) {
+      setError(`${number} cannot be placed here`);
+
+      return;
+    }
 
     const newBoard = board.map((currentRow) => [...currentRow]);
 
     newBoard[row][col] = number;
 
     setBoard(newBoard);
+    setError("");
   };
+
+  // ---------------------------------------------
+  // Clear selected cell
+  // ---------------------------------------------
 
   const clearCell = () => {
     if (!selectedCell) return;
 
     const { row, col } = selectedCell;
 
-    if (initialBoard[row][col] !== 0) return;
+    if (initialBoard[row][col] !== 0) {
+      return;
+    }
 
     const newBoard = board.map((currentRow) => [...currentRow]);
 
     newBoard[row][col] = 0;
 
     setBoard(newBoard);
+    setError("");
   };
+
+  // ---------------------------------------------
+  // Keyboard controls
+  // ---------------------------------------------
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key >= "1" && event.key <= "9") {
+        handleNumberInput(Number(event.key));
+      }
+
+      if (event.key === "Backspace" || event.key === "Delete") {
+        clearCell();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedCell, board, initialBoard]);
+
+  // ---------------------------------------------
+  // Difficulty change
+  // ---------------------------------------------
+
+  const handleDifficultyChange = (event) => {
+    const level = event.target.value;
+
+    setDifficulty(level);
+
+    startNewGame(level);
+  };
+
+  // ---------------------------------------------
+  // Loading
+  // ---------------------------------------------
+
+  if (board.length === 0) {
+    return (
+      <div className="app">
+        <h1>Sudoku</h1>
+        <p>Generating puzzle...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="app">
       <h1>Sudoku</h1>
 
-      <div className="sudoku-board">
-        {board.map((row, rowIndex) =>
-          row.map((value, colIndex) => {
-            const isSelected =
-              selectedCell?.row === rowIndex && selectedCell?.col === colIndex;
+      {/* Difficulty */}
 
-            const isOriginal = initialBoard[rowIndex][colIndex] !== 0;
+      <div className="game-controls">
+        <label>Difficulty:</label>
 
-            return (
-              <button
-                key={`${rowIndex}-${colIndex}`}
-                className={`
-                  sudoku-cell
-                  ${isSelected ? "selected" : ""}
-                  ${isOriginal ? "original" : "user-number"}
-                `}
-                onClick={() => handleCellClick(rowIndex, colIndex)}
-              >
-                {value !== 0 ? value : ""}
-              </button>
-            );
-          }),
-        )}
+        <select value={difficulty} onChange={handleDifficultyChange}>
+          <option value="easy">Easy</option>
+
+          <option value="medium">Medium</option>
+
+          <option value="hard">Hard</option>
+        </select>
+
+        <button onClick={() => startNewGame()}>New Game</button>
       </div>
 
-      <div className="number-pad">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((number) => (
-          <button key={number} onClick={() => handleNumberInput(number)}>
-            {number}
-          </button>
-        ))}
+      {/* Sudoku */}
 
-        <button onClick={clearCell}>⌫</button>
-      </div>
+      <SudokuBoard
+        board={board}
+        initialBoard={initialBoard}
+        selectedCell={selectedCell}
+        onCellClick={handleCellClick}
+      />
+
+      {/* Error */}
+
+      {error && <div className="error-message">{error}</div>}
+
+      {/* Number pad */}
+
+      <NumberPad onNumberClick={handleNumberInput} onClear={clearCell} />
+
+      <p className="keyboard-help">
+        Select a cell and use your keyboard to enter numbers.
+      </p>
     </div>
   );
 }
