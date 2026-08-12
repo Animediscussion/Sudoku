@@ -15,11 +15,13 @@ function App() {
   const [selectedCell, setSelectedCell] = useState(null);
 
   const [error, setError] = useState("");
-
   const [difficulty, setDifficulty] = useState("medium");
 
+  const [mistakes, setMistakes] = useState(0);
+  const [gameWon, setGameWon] = useState(false);
+
   // ---------------------------------------------
-  // Start a new game
+  // Start new game
   // ---------------------------------------------
 
   const startNewGame = (level = difficulty) => {
@@ -32,11 +34,16 @@ function App() {
     setSolution(generatedSolution);
 
     setSelectedCell(null);
+
     setError("");
+
+    setMistakes(0);
+
+    setGameWon(false);
   };
 
   // ---------------------------------------------
-  // Generate first puzzle
+  // First game
   // ---------------------------------------------
 
   useEffect(() => {
@@ -48,8 +55,30 @@ function App() {
   // ---------------------------------------------
 
   const handleCellClick = (row, col) => {
-    setSelectedCell({ row, col });
+    if (gameWon) return;
+
+    setSelectedCell({
+      row,
+      col,
+    });
+
     setError("");
+  };
+
+  // ---------------------------------------------
+  // Check if puzzle is complete
+  // ---------------------------------------------
+
+  const checkWin = (newBoard) => {
+    for (let row = 0; row < 9; row++) {
+      for (let col = 0; col < 9; col++) {
+        if (newBoard[row][col] !== solution[row][col]) {
+          return false;
+        }
+      }
+    }
+
+    return true;
   };
 
   // ---------------------------------------------
@@ -57,11 +86,11 @@ function App() {
   // ---------------------------------------------
 
   const handleNumberInput = (number) => {
-    if (!selectedCell) return;
+    if (!selectedCell || gameWon) return;
 
     const { row, col } = selectedCell;
 
-    // Don't modify original cells
+    // Original puzzle cell
     if (initialBoard[row][col] !== 0) {
       return;
     }
@@ -70,23 +99,42 @@ function App() {
     if (!isValidMove(board, row, col, number)) {
       setError(`${number} cannot be placed here`);
 
+      setMistakes((prev) => prev + 1);
+
       return;
     }
 
+    // Check against solution
+    if (solution[row][col] !== number) {
+      setError("Wrong number!");
+
+      setMistakes((prev) => prev + 1);
+
+      return;
+    }
+
+    // Create new board
     const newBoard = board.map((currentRow) => [...currentRow]);
 
     newBoard[row][col] = number;
 
     setBoard(newBoard);
+
     setError("");
+
+    // Check win
+    if (checkWin(newBoard)) {
+      setGameWon(true);
+      setError("");
+    }
   };
 
   // ---------------------------------------------
-  // Clear selected cell
+  // Clear cell
   // ---------------------------------------------
 
   const clearCell = () => {
-    if (!selectedCell) return;
+    if (!selectedCell || gameWon) return;
 
     const { row, col } = selectedCell;
 
@@ -99,6 +147,7 @@ function App() {
     newBoard[row][col] = 0;
 
     setBoard(newBoard);
+
     setError("");
   };
 
@@ -122,10 +171,10 @@ function App() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectedCell, board, initialBoard]);
+  }, [selectedCell, board, initialBoard, solution, gameWon]);
 
   // ---------------------------------------------
-  // Difficulty change
+  // Difficulty
   // ---------------------------------------------
 
   const handleDifficultyChange = (event) => {
@@ -135,6 +184,16 @@ function App() {
 
     startNewGame(level);
   };
+
+  // ---------------------------------------------
+  // Progress
+  // ---------------------------------------------
+
+  const totalCells = 81;
+
+  const filledCells = board.flat().filter((value) => value !== 0).length;
+
+  const progress = Math.round((filledCells / totalCells) * 100);
 
   // ---------------------------------------------
   // Loading
@@ -151,44 +210,103 @@ function App() {
 
   return (
     <div className="app">
-      <h1>Sudoku</h1>
+      <div className="game-container">
+        {/* Header */}
 
-      {/* Difficulty */}
+        <div className="game-header">
+          <div>
+            <h1>Sudoku</h1>
 
-      <div className="game-controls">
-        <label>Difficulty:</label>
+            <p>Test your logic and solve the puzzle.</p>
+          </div>
+        </div>
 
-        <select value={difficulty} onChange={handleDifficultyChange}>
-          <option value="easy">Easy</option>
+        {/* Game information */}
 
-          <option value="medium">Medium</option>
+        <div className="game-info">
+          <div className="info-item">
+            <span>Difficulty</span>
 
-          <option value="hard">Hard</option>
-        </select>
+            <strong>{difficulty.toUpperCase()}</strong>
+          </div>
 
-        <button onClick={() => startNewGame()}>New Game</button>
+          <div className="info-item">
+            <span>Mistakes</span>
+
+            <strong>{mistakes}</strong>
+          </div>
+
+          <div className="info-item">
+            <span>Progress</span>
+
+            <strong>{progress}%</strong>
+          </div>
+        </div>
+
+        {/* Controls */}
+
+        <div className="game-controls">
+          <select value={difficulty} onChange={handleDifficultyChange}>
+            <option value="easy">Easy</option>
+
+            <option value="medium">Medium</option>
+
+            <option value="hard">Hard</option>
+          </select>
+
+          <button onClick={() => startNewGame()}>New Game</button>
+        </div>
+
+        {/* Progress bar */}
+
+        <div className="progress-container">
+          <div
+            className="progress-bar"
+            style={{
+              width: `${progress}%`,
+            }}
+          />
+        </div>
+
+        {/* Sudoku Board */}
+
+        <SudokuBoard
+          board={board}
+          initialBoard={initialBoard}
+          selectedCell={selectedCell}
+          onCellClick={handleCellClick}
+        />
+
+        {/* Error */}
+
+        {error && <div className="error-message">{error}</div>}
+
+        {/* Number pad */}
+
+        <NumberPad onNumberClick={handleNumberInput} onClear={clearCell} />
+
+        <p className="keyboard-help">
+          Select a cell and use your keyboard to enter numbers.
+        </p>
+
+        {/* Win message */}
+
+        {gameWon && (
+          <div className="win-message">
+            <div className="win-icon">🎉</div>
+
+            <h2>Puzzle Complete!</h2>
+
+            <p>Excellent work! You solved the Sudoku puzzle.</p>
+
+            <p>
+              Mistakes: <strong>{mistakes}</strong>
+            </p>
+
+            <button onClick={() => startNewGame()}>Play Again</button>
+          </div>
+        )}
       </div>
-
-      {/* Sudoku */}
-
-      <SudokuBoard
-        board={board}
-        initialBoard={initialBoard}
-        selectedCell={selectedCell}
-        onCellClick={handleCellClick}
-      />
-
-      {/* Error */}
-
-      {error && <div className="error-message">{error}</div>}
-
-      {/* Number pad */}
-
-      <NumberPad onNumberClick={handleNumberInput} onClear={clearCell} />
-
-      <p className="keyboard-help">
-        Select a cell and use your keyboard to enter numbers.
-      </p>
     </div>
   );
 }
