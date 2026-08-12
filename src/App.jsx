@@ -3,47 +3,90 @@ import { useEffect, useState } from "react";
 import SudokuBoard from "./components/SudokuBoard";
 import NumberPad from "./components/NumberPad";
 
-import { generateSudoku, isValidMove } from "./utils/sudoku";
+import {
+  generateSudoku,
+  isValidMove,
+} from "./utils/sudoku";
 
 import "./App.css";
+
+const MAX_MISTAKES = 3;
 
 function App() {
   const [board, setBoard] = useState([]);
   const [initialBoard, setInitialBoard] = useState([]);
   const [solution, setSolution] = useState([]);
 
-  const [selectedCell, setSelectedCell] = useState(null);
+  const [selectedCell, setSelectedCell] =
+    useState(null);
+
+  const [difficulty, setDifficulty] =
+    useState("medium");
 
   const [error, setError] = useState("");
-  const [difficulty, setDifficulty] = useState("medium");
 
   const [mistakes, setMistakes] = useState(0);
+
   const [gameWon, setGameWon] = useState(false);
+
+  const [gameOver, setGameOver] = useState(false);
+
+  const [paused, setPaused] = useState(false);
+
+  const [seconds, setSeconds] = useState(0);
+
+  // ---------------------------------------------
+  // Format timer
+  // ---------------------------------------------
+
+  const formatTime = (totalSeconds) => {
+    const minutes = Math.floor(totalSeconds / 60);
+
+    const remainingSeconds =
+      totalSeconds % 60;
+
+    return `${String(minutes).padStart(2, "0")}:${String(
+      remainingSeconds
+    ).padStart(2, "0")}`;
+  };
 
   // ---------------------------------------------
   // Start new game
   // ---------------------------------------------
 
   const startNewGame = (level = difficulty) => {
-    const { puzzle, solution: generatedSolution } = generateSudoku(level);
+    const {
+      puzzle,
+      solution: generatedSolution,
+    } = generateSudoku(level);
 
     setBoard(puzzle);
 
-    setInitialBoard(puzzle.map((row) => [...row]));
+    setInitialBoard(
+      puzzle.map((row) => [...row])
+    );
 
     setSolution(generatedSolution);
 
     setSelectedCell(null);
 
-    setError("");
+    setDifficulty(level);
 
     setMistakes(0);
 
+    setError("");
+
     setGameWon(false);
+
+    setGameOver(false);
+
+    setPaused(false);
+
+    setSeconds(0);
   };
 
   // ---------------------------------------------
-  // First game
+  // Generate first game
   // ---------------------------------------------
 
   useEffect(() => {
@@ -51,11 +94,41 @@ function App() {
   }, []);
 
   // ---------------------------------------------
-  // Cell click
+  // Timer
+  // ---------------------------------------------
+
+  useEffect(() => {
+    if (
+      paused ||
+      gameWon ||
+      gameOver ||
+      board.length === 0
+    ) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setSeconds((prev) => prev + 1);
+    }, 1000);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [
+    paused,
+    gameWon,
+    gameOver,
+    board.length,
+  ]);
+
+  // ---------------------------------------------
+  // Select cell
   // ---------------------------------------------
 
   const handleCellClick = (row, col) => {
-    if (gameWon) return;
+    if (paused || gameWon || gameOver) {
+      return;
+    }
 
     setSelectedCell({
       row,
@@ -66,13 +139,16 @@ function App() {
   };
 
   // ---------------------------------------------
-  // Check if puzzle is complete
+  // Check win
   // ---------------------------------------------
 
   const checkWin = (newBoard) => {
     for (let row = 0; row < 9; row++) {
       for (let col = 0; col < 9; col++) {
-        if (newBoard[row][col] !== solution[row][col]) {
+        if (
+          newBoard[row][col] !==
+          solution[row][col]
+        ) {
           return false;
         }
       }
@@ -86,35 +162,57 @@ function App() {
   // ---------------------------------------------
 
   const handleNumberInput = (number) => {
-    if (!selectedCell || gameWon) return;
+    if (
+      !selectedCell ||
+      paused ||
+      gameWon ||
+      gameOver
+    ) {
+      return;
+    }
 
     const { row, col } = selectedCell;
 
-    // Original puzzle cell
+    // Original cell
     if (initialBoard[row][col] !== 0) {
       return;
     }
 
-    // Sudoku rule validation
+    // Sudoku rule
     if (!isValidMove(board, row, col, number)) {
-      setError(`${number} cannot be placed here`);
+      const newMistakes = mistakes + 1;
 
-      setMistakes((prev) => prev + 1);
+      setMistakes(newMistakes);
+
+      setError(
+        `${number} cannot be placed here`
+      );
+
+      if (newMistakes >= MAX_MISTAKES) {
+        setGameOver(true);
+      }
 
       return;
     }
 
-    // Check against solution
+    // Solution check
     if (solution[row][col] !== number) {
+      const newMistakes = mistakes + 1;
+
+      setMistakes(newMistakes);
+
       setError("Wrong number!");
 
-      setMistakes((prev) => prev + 1);
+      if (newMistakes >= MAX_MISTAKES) {
+        setGameOver(true);
+      }
 
       return;
     }
 
-    // Create new board
-    const newBoard = board.map((currentRow) => [...currentRow]);
+    const newBoard = board.map((currentRow) => [
+      ...currentRow,
+    ]);
 
     newBoard[row][col] = number;
 
@@ -122,10 +220,8 @@ function App() {
 
     setError("");
 
-    // Check win
     if (checkWin(newBoard)) {
       setGameWon(true);
-      setError("");
     }
   };
 
@@ -134,7 +230,14 @@ function App() {
   // ---------------------------------------------
 
   const clearCell = () => {
-    if (!selectedCell || gameWon) return;
+    if (
+      !selectedCell ||
+      paused ||
+      gameWon ||
+      gameOver
+    ) {
+      return;
+    }
 
     const { row, col } = selectedCell;
 
@@ -142,7 +245,9 @@ function App() {
       return;
     }
 
-    const newBoard = board.map((currentRow) => [...currentRow]);
+    const newBoard = board.map((currentRow) => [
+      ...currentRow,
+    ]);
 
     newBoard[row][col] = 0;
 
@@ -157,21 +262,113 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if (event.key >= "1" && event.key <= "9") {
-        handleNumberInput(Number(event.key));
+      if (
+        event.key >= "1" &&
+        event.key <= "9"
+      ) {
+        handleNumberInput(
+          Number(event.key)
+        );
       }
 
-      if (event.key === "Backspace" || event.key === "Delete") {
+      if (
+        event.key === "Backspace" ||
+        event.key === "Delete"
+      ) {
         clearCell();
       }
+
+      if (event.key === "Escape") {
+        setPaused((prev) => !prev);
+      }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener(
+      "keydown",
+      handleKeyDown
+    );
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
     };
-  }, [selectedCell, board, initialBoard, solution, gameWon]);
+  }, [
+    selectedCell,
+    board,
+    initialBoard,
+    solution,
+    mistakes,
+    paused,
+    gameWon,
+    gameOver,
+  ]);
+
+  // ---------------------------------------------
+  // Restart current puzzle
+  // ---------------------------------------------
+
+  const restartGame = () => {
+    setBoard(
+      initialBoard.map((row) => [...row])
+    );
+
+    setSelectedCell(null);
+
+    setMistakes(0);
+
+    setError("");
+
+    setGameWon(false);
+
+    setGameOver(false);
+
+    setPaused(false);
+
+    setSeconds(0);
+  };
+
+  // ---------------------------------------------
+  // Hint
+  // ---------------------------------------------
+
+  const handleHint = () => {
+    if (
+      !selectedCell ||
+      paused ||
+      gameWon ||
+      gameOver
+    ) {
+      return;
+    }
+
+    const { row, col } = selectedCell;
+
+    // Can't hint original cells
+    if (initialBoard[row][col] !== 0) {
+      return;
+    }
+
+    // Already solved
+    if (board[row][col] !== 0) {
+      return;
+    }
+
+    const newBoard = board.map((currentRow) => [
+      ...currentRow,
+    ]);
+
+    newBoard[row][col] = solution[row][col];
+
+    setBoard(newBoard);
+
+    setError("");
+
+    if (checkWin(newBoard)) {
+      setGameWon(true);
+    }
+  };
 
   // ---------------------------------------------
   // Difficulty
@@ -180,8 +377,6 @@ function App() {
   const handleDifficultyChange = (event) => {
     const level = event.target.value;
 
-    setDifficulty(level);
-
     startNewGame(level);
   };
 
@@ -189,11 +384,14 @@ function App() {
   // Progress
   // ---------------------------------------------
 
-  const totalCells = 81;
+  const filledCells = board
+    .flat()
+    .filter((value) => value !== 0)
+    .length;
 
-  const filledCells = board.flat().filter((value) => value !== 0).length;
-
-  const progress = Math.round((filledCells / totalCells) * 100);
+  const progress = Math.round(
+    (filledCells / 81) * 100
+  );
 
   // ---------------------------------------------
   // Loading
@@ -210,103 +408,270 @@ function App() {
 
   return (
     <div className="app">
+
       <div className="game-container">
+
         {/* Header */}
 
         <div className="game-header">
+
           <div>
             <h1>Sudoku</h1>
 
-            <p>Test your logic and solve the puzzle.</p>
+            <p>
+              Challenge your logic.
+            </p>
           </div>
+
+          <div className="timer">
+            ⏱ {formatTime(seconds)}
+          </div>
+
         </div>
 
-        {/* Game information */}
+
+        {/* Stats */}
 
         <div className="game-info">
+
           <div className="info-item">
             <span>Difficulty</span>
 
-            <strong>{difficulty.toUpperCase()}</strong>
+            <strong>
+              {difficulty.toUpperCase()}
+            </strong>
           </div>
 
           <div className="info-item">
             <span>Mistakes</span>
 
-            <strong>{mistakes}</strong>
+            <strong>
+              {mistakes}/{MAX_MISTAKES}
+            </strong>
           </div>
 
           <div className="info-item">
             <span>Progress</span>
 
-            <strong>{progress}%</strong>
+            <strong>
+              {progress}%
+            </strong>
           </div>
+
         </div>
+
 
         {/* Controls */}
 
         <div className="game-controls">
-          <select value={difficulty} onChange={handleDifficultyChange}>
-            <option value="easy">Easy</option>
 
-            <option value="medium">Medium</option>
+          <select
+            value={difficulty}
+            onChange={handleDifficultyChange}
+            disabled={paused}
+          >
+            <option value="easy">
+              Easy
+            </option>
 
-            <option value="hard">Hard</option>
+            <option value="medium">
+              Medium
+            </option>
+
+            <option value="hard">
+              Hard
+            </option>
           </select>
 
-          <button onClick={() => startNewGame()}>New Game</button>
+          <button
+            onClick={() =>
+              startNewGame()
+            }
+          >
+            New Game
+          </button>
+
+          <button
+            onClick={restartGame}
+          >
+            Restart
+          </button>
+
+          <button
+            onClick={() =>
+              setPaused((prev) => !prev)
+            }
+            disabled={gameWon || gameOver}
+          >
+            {paused ? "Resume" : "Pause"}
+          </button>
+
         </div>
 
-        {/* Progress bar */}
+
+        {/* Progress */}
 
         <div className="progress-container">
+
           <div
             className="progress-bar"
             style={{
               width: `${progress}%`,
             }}
           />
+
         </div>
 
-        {/* Sudoku Board */}
 
-        <SudokuBoard
-          board={board}
-          initialBoard={initialBoard}
-          selectedCell={selectedCell}
-          onCellClick={handleCellClick}
-        />
+        {/* Board */}
+
+        <div className={paused ? "board-paused" : ""}>
+
+          <SudokuBoard
+            board={board}
+            initialBoard={initialBoard}
+            selectedCell={selectedCell}
+            onCellClick={handleCellClick}
+          />
+
+        </div>
+
+
+        {/* Pause overlay */}
+
+        {paused && (
+          <div className="pause-message">
+
+            <div className="pause-icon">
+              ⏸
+            </div>
+
+            <h2>Game Paused</h2>
+
+            <p>
+              Press Resume when you're ready.
+            </p>
+
+          </div>
+        )}
+
 
         {/* Error */}
 
-        {error && <div className="error-message">{error}</div>}
+        {error && !paused && (
+          <div className="error-message">
+            {error}
+          </div>
+        )}
+
 
         {/* Number pad */}
 
-        <NumberPad onNumberClick={handleNumberInput} onClear={clearCell} />
+        <NumberPad
+          onNumberClick={handleNumberInput}
+          onClear={clearCell}
+        />
+
+
+        {/* Hint */}
+
+        <button
+          className="hint-button"
+          onClick={handleHint}
+          disabled={
+            paused ||
+            gameWon ||
+            gameOver
+          }
+        >
+          💡 Hint
+        </button>
+
+
+        {/* Keyboard help */}
 
         <p className="keyboard-help">
-          Select a cell and use your keyboard to enter numbers.
+          Select a cell and use 1–9 on your
+          keyboard. Press Esc to pause.
         </p>
 
-        {/* Win message */}
+
+        {/* Win */}
 
         {gameWon && (
           <div className="win-message">
-            <div className="win-icon">🎉</div>
 
-            <h2>Puzzle Complete!</h2>
+            <div className="win-icon">
+              🎉
+            </div>
 
-            <p>Excellent work! You solved the Sudoku puzzle.</p>
+            <h2>
+              Puzzle Complete!
+            </h2>
 
             <p>
-              Mistakes: <strong>{mistakes}</strong>
+              Time:{" "}
+              <strong>
+                {formatTime(seconds)}
+              </strong>
             </p>
 
-            <button onClick={() => startNewGame()}>Play Again</button>
+            <p>
+              Mistakes:{" "}
+              <strong>
+                {mistakes}
+              </strong>
+            </p>
+
+            <button
+              onClick={() =>
+                startNewGame()
+              }
+            >
+              Play Again
+            </button>
+
           </div>
         )}
+
+
+        {/* Game over */}
+
+        {gameOver && !gameWon && (
+          <div className="game-over-message">
+
+            <div className="game-over-icon">
+              💔
+            </div>
+
+            <h2>
+              Game Over
+            </h2>
+
+            <p>
+              You reached the maximum number
+              of mistakes.
+            </p>
+
+            <button
+              onClick={restartGame}
+            >
+              Try Again
+            </button>
+
+            <button
+              onClick={() =>
+                startNewGame()
+              }
+            >
+              New Puzzle
+            </button>
+
+          </div>
+        )}
+
       </div>
+
     </div>
   );
 }

@@ -1,6 +1,10 @@
 import SudokuCell from "./SudokuCell";
 
 function SudokuBoard({ board, initialBoard, selectedCell, onCellClick }) {
+  const selectedValue = selectedCell
+    ? board[selectedCell.row][selectedCell.col]
+    : null;
+
   return (
     <div className="sudoku-board">
       {board.map((row, rowIndex) =>
@@ -18,6 +22,7 @@ function SudokuBoard({ board, initialBoard, selectedCell, onCellClick }) {
               col={colIndex}
               isSelected={isSelected}
               isOriginal={isOriginal}
+              selectedValue={selectedValue}
               onClick={onCellClick}
             />
           );
