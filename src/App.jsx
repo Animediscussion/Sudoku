@@ -3,12 +3,10 @@ import { useEffect, useState } from "react";
 import SudokuBoard from "./components/SudokuBoard";
 import NumberPad from "./components/NumberPad";
 
-import {
-  generateSudoku,
-  isValidMove,
-} from "./utils/sudoku";
+import { generateSudoku, isValidMove } from "./utils/sudoku";
 
 import "./App.css";
+import Home from "./components/Home";
 
 const MAX_MISTAKES = 3;
 
@@ -17,11 +15,9 @@ function App() {
   const [initialBoard, setInitialBoard] = useState([]);
   const [solution, setSolution] = useState([]);
 
-  const [selectedCell, setSelectedCell] =
-    useState(null);
+  const [selectedCell, setSelectedCell] = useState(null);
 
-  const [difficulty, setDifficulty] =
-    useState("medium");
+  const [difficulty, setDifficulty] = useState("medium");
 
   const [error, setError] = useState("");
 
@@ -42,11 +38,10 @@ function App() {
   const formatTime = (totalSeconds) => {
     const minutes = Math.floor(totalSeconds / 60);
 
-    const remainingSeconds =
-      totalSeconds % 60;
+    const remainingSeconds = totalSeconds % 60;
 
     return `${String(minutes).padStart(2, "0")}:${String(
-      remainingSeconds
+      remainingSeconds,
     ).padStart(2, "0")}`;
   };
 
@@ -55,16 +50,11 @@ function App() {
   // ---------------------------------------------
 
   const startNewGame = (level = difficulty) => {
-    const {
-      puzzle,
-      solution: generatedSolution,
-    } = generateSudoku(level);
+    const { puzzle, solution: generatedSolution } = generateSudoku(level);
 
     setBoard(puzzle);
 
-    setInitialBoard(
-      puzzle.map((row) => [...row])
-    );
+    setInitialBoard(puzzle.map((row) => [...row]));
 
     setSolution(generatedSolution);
 
@@ -98,12 +88,7 @@ function App() {
   // ---------------------------------------------
 
   useEffect(() => {
-    if (
-      paused ||
-      gameWon ||
-      gameOver ||
-      board.length === 0
-    ) {
+    if (paused || gameWon || gameOver || board.length === 0) {
       return;
     }
 
@@ -114,12 +99,7 @@ function App() {
     return () => {
       clearInterval(timer);
     };
-  }, [
-    paused,
-    gameWon,
-    gameOver,
-    board.length,
-  ]);
+  }, [paused, gameWon, gameOver, board.length]);
 
   // ---------------------------------------------
   // Select cell
@@ -145,10 +125,7 @@ function App() {
   const checkWin = (newBoard) => {
     for (let row = 0; row < 9; row++) {
       for (let col = 0; col < 9; col++) {
-        if (
-          newBoard[row][col] !==
-          solution[row][col]
-        ) {
+        if (newBoard[row][col] !== solution[row][col]) {
           return false;
         }
       }
@@ -162,12 +139,7 @@ function App() {
   // ---------------------------------------------
 
   const handleNumberInput = (number) => {
-    if (
-      !selectedCell ||
-      paused ||
-      gameWon ||
-      gameOver
-    ) {
+    if (!selectedCell || paused || gameWon || gameOver) {
       return;
     }
 
@@ -184,9 +156,7 @@ function App() {
 
       setMistakes(newMistakes);
 
-      setError(
-        `${number} cannot be placed here`
-      );
+      setError(`${number} cannot be placed here`);
 
       if (newMistakes >= MAX_MISTAKES) {
         setGameOver(true);
@@ -210,9 +180,7 @@ function App() {
       return;
     }
 
-    const newBoard = board.map((currentRow) => [
-      ...currentRow,
-    ]);
+    const newBoard = board.map((currentRow) => [...currentRow]);
 
     newBoard[row][col] = number;
 
@@ -230,12 +198,7 @@ function App() {
   // ---------------------------------------------
 
   const clearCell = () => {
-    if (
-      !selectedCell ||
-      paused ||
-      gameWon ||
-      gameOver
-    ) {
+    if (!selectedCell || paused || gameWon || gameOver) {
       return;
     }
 
@@ -245,9 +208,7 @@ function App() {
       return;
     }
 
-    const newBoard = board.map((currentRow) => [
-      ...currentRow,
-    ]);
+    const newBoard = board.map((currentRow) => [...currentRow]);
 
     newBoard[row][col] = 0;
 
@@ -262,19 +223,11 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if (
-        event.key >= "1" &&
-        event.key <= "9"
-      ) {
-        handleNumberInput(
-          Number(event.key)
-        );
+      if (event.key >= "1" && event.key <= "9") {
+        handleNumberInput(Number(event.key));
       }
 
-      if (
-        event.key === "Backspace" ||
-        event.key === "Delete"
-      ) {
+      if (event.key === "Backspace" || event.key === "Delete") {
         clearCell();
       }
 
@@ -283,16 +236,10 @@ function App() {
       }
     };
 
-    window.addEventListener(
-      "keydown",
-      handleKeyDown
-    );
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      window.removeEventListener(
-        "keydown",
-        handleKeyDown
-      );
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [
     selectedCell,
@@ -310,9 +257,7 @@ function App() {
   // ---------------------------------------------
 
   const restartGame = () => {
-    setBoard(
-      initialBoard.map((row) => [...row])
-    );
+    setBoard(initialBoard.map((row) => [...row]));
 
     setSelectedCell(null);
 
@@ -334,12 +279,7 @@ function App() {
   // ---------------------------------------------
 
   const handleHint = () => {
-    if (
-      !selectedCell ||
-      paused ||
-      gameWon ||
-      gameOver
-    ) {
+    if (!selectedCell || paused || gameWon || gameOver) {
       return;
     }
 
@@ -355,9 +295,7 @@ function App() {
       return;
     }
 
-    const newBoard = board.map((currentRow) => [
-      ...currentRow,
-    ]);
+    const newBoard = board.map((currentRow) => [...currentRow]);
 
     newBoard[row][col] = solution[row][col];
 
@@ -384,14 +322,9 @@ function App() {
   // Progress
   // ---------------------------------------------
 
-  const filledCells = board
-    .flat()
-    .filter((value) => value !== 0)
-    .length;
+  const filledCells = board.flat().filter((value) => value !== 0).length;
 
-  const progress = Math.round(
-    (filledCells / 81) * 100
-  );
+  const progress = Math.round((filledCells / 81) * 100);
 
   // ---------------------------------------------
   // Loading
@@ -408,38 +341,28 @@ function App() {
 
   return (
     <div className="app">
+      {/*  <Home /> */}
 
       <div className="game-container">
-
         {/* Header */}
 
         <div className="game-header">
-
           <div>
             <h1>Sudoku</h1>
 
-            <p>
-              Challenge your logic.
-            </p>
+            <p>Challenge your logic.</p>
           </div>
 
-          <div className="timer">
-            ⏱ {formatTime(seconds)}
-          </div>
-
+          <div className="timer">⏱ {formatTime(seconds)}</div>
         </div>
-
 
         {/* Stats */}
 
         <div className="game-info">
-
           <div className="info-item">
             <span>Difficulty</span>
 
-            <strong>
-              {difficulty.toUpperCase()}
-            </strong>
+            <strong>{difficulty.toUpperCase()}</strong>
           </div>
 
           <div className="info-item">
@@ -453,225 +376,131 @@ function App() {
           <div className="info-item">
             <span>Progress</span>
 
-            <strong>
-              {progress}%
-            </strong>
+            <strong>{progress}%</strong>
           </div>
-
         </div>
-
 
         {/* Controls */}
 
         <div className="game-controls">
-
           <select
             value={difficulty}
             onChange={handleDifficultyChange}
             disabled={paused}
           >
-            <option value="easy">
-              Easy
-            </option>
+            <option value="easy">Easy</option>
 
-            <option value="medium">
-              Medium
-            </option>
+            <option value="medium">Medium</option>
 
-            <option value="hard">
-              Hard
-            </option>
+            <option value="hard">Hard</option>
           </select>
 
-          <button
-            onClick={() =>
-              startNewGame()
-            }
-          >
-            New Game
-          </button>
+          <button onClick={() => startNewGame()}>New Game</button>
+
+          <button onClick={restartGame}>Restart</button>
 
           <button
-            onClick={restartGame}
-          >
-            Restart
-          </button>
-
-          <button
-            onClick={() =>
-              setPaused((prev) => !prev)
-            }
+            onClick={() => setPaused((prev) => !prev)}
             disabled={gameWon || gameOver}
           >
             {paused ? "Resume" : "Pause"}
           </button>
-
         </div>
-
 
         {/* Progress */}
 
         <div className="progress-container">
-
           <div
             className="progress-bar"
             style={{
               width: `${progress}%`,
             }}
           />
-
         </div>
-
 
         {/* Board */}
 
         <div className={paused ? "board-paused" : ""}>
-
           <SudokuBoard
             board={board}
             initialBoard={initialBoard}
             selectedCell={selectedCell}
             onCellClick={handleCellClick}
           />
-
         </div>
-
 
         {/* Pause overlay */}
 
         {paused && (
           <div className="pause-message">
-
-            <div className="pause-icon">
-              ⏸
-            </div>
+            <div className="pause-icon">⏸</div>
 
             <h2>Game Paused</h2>
 
-            <p>
-              Press Resume when you're ready.
-            </p>
-
+            <p>Press Resume when you're ready.</p>
           </div>
         )}
-
 
         {/* Error */}
 
-        {error && !paused && (
-          <div className="error-message">
-            {error}
-          </div>
-        )}
-
+        {error && !paused && <div className="error-message">{error}</div>}
 
         {/* Number pad */}
 
-        <NumberPad
-          onNumberClick={handleNumberInput}
-          onClear={clearCell}
-        />
-
+        <NumberPad onNumberClick={handleNumberInput} onClear={clearCell} />
 
         {/* Hint */}
 
         <button
           className="hint-button"
           onClick={handleHint}
-          disabled={
-            paused ||
-            gameWon ||
-            gameOver
-          }
+          disabled={paused || gameWon || gameOver}
         >
           💡 Hint
         </button>
 
-
         {/* Keyboard help */}
 
         <p className="keyboard-help">
-          Select a cell and use 1–9 on your
-          keyboard. Press Esc to pause.
+          Select a cell and use 1–9 on your keyboard. Press Esc to pause.
         </p>
-
 
         {/* Win */}
 
         {gameWon && (
           <div className="win-message">
+            <div className="win-icon">🎉</div>
 
-            <div className="win-icon">
-              🎉
-            </div>
-
-            <h2>
-              Puzzle Complete!
-            </h2>
+            <h2>Puzzle Complete!</h2>
 
             <p>
-              Time:{" "}
-              <strong>
-                {formatTime(seconds)}
-              </strong>
+              Time: <strong>{formatTime(seconds)}</strong>
             </p>
 
             <p>
-              Mistakes:{" "}
-              <strong>
-                {mistakes}
-              </strong>
+              Mistakes: <strong>{mistakes}</strong>
             </p>
 
-            <button
-              onClick={() =>
-                startNewGame()
-              }
-            >
-              Play Again
-            </button>
-
+            <button onClick={() => startNewGame()}>Play Again</button>
           </div>
         )}
-
 
         {/* Game over */}
 
         {gameOver && !gameWon && (
           <div className="game-over-message">
+            <div className="game-over-icon">💔</div>
 
-            <div className="game-over-icon">
-              💔
-            </div>
+            <h2>Game Over</h2>
 
-            <h2>
-              Game Over
-            </h2>
+            <p>You reached the maximum number of mistakes.</p>
 
-            <p>
-              You reached the maximum number
-              of mistakes.
-            </p>
+            <button onClick={restartGame}>Try Again</button>
 
-            <button
-              onClick={restartGame}
-            >
-              Try Again
-            </button>
-
-            <button
-              onClick={() =>
-                startNewGame()
-              }
-            >
-              New Puzzle
-            </button>
-
+            <button onClick={() => startNewGame()}>New Puzzle</button>
           </div>
         )}
-
       </div>
-
     </div>
   );
 }

@@ -1,0 +1,73 @@
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap");
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.home {
+  min-height: 100vh;
+  background: #050505;
+  color: #d8d8d8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  font-family: "Cinzel", serif;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(0, 0, 0, 0.9) 70%
+  );
+}
+
+.hero {
+  text-align: center;
+  z-index: 2;
+  max-width: 700px;
+  padding: 2rem;
+}
+
+.subtitle {
+  letter-spacing: 8px;
+  font-size: 0.8rem;
+  color: #777;
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-size: clamp(3rem, 8vw, 7rem);
+  letter-spacing: 8px;
+  margin-bottom: 2rem;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.08);
+}
+
+.message {
+  min-height: 40px;
+  font-size: 1.1rem;
+  color: #a8a8a8;
+  margin-bottom: 2rem;
+  transition: all 0.3s ease;
+}
+
+.enter-btn {
+  background: transparent;
+  color: #d8d8d8;
+  border: 1px solid #444;
+  padding: 14px 32px;
+  cursor: pointer;
+  letter-spacing: 2px;
+  transition: 0.3s;
+}
+
+.enter-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #888;
+}
