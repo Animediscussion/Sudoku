@@ -6,7 +6,6 @@ import NumberPad from "./components/NumberPad";
 import { generateSudoku, isValidMove } from "./utils/sudoku";
 
 import "./App.css";
-import Home from "./components/Home";
 
 const MAX_MISTAKES = 3;
 
